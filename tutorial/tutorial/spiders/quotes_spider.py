@@ -3,7 +3,7 @@ from scrapy.exceptions import CloseSpider
 
 
 class QuotesSpider(scrapy.Spider):
-    name = "quotes"
+    name = "scholar"
     limit = 2000
     counter =0
     urls= []
@@ -25,6 +25,7 @@ class QuotesSpider(scrapy.Spider):
         self.log("Crawling Limit = " + str(self.limit))
 
         res = response.xpath('//div[@id="references"]/div[@class="card-content"]/div/article/div/div[@class="result-meta"]/a/@href').extract()
+        ids = [ (item.split("/")[-2]+item.split("/")[-1]) for item in res]
         refs = []
         for url in res:
             refs.append(response.urljoin(url))
@@ -32,40 +33,17 @@ class QuotesSpider(scrapy.Spider):
         url_parts = response.url.split('/')
 
         yield {
-        	"type": "paper",
+        	# "type": "paper",
         	"id": url_parts[-2]+ url_parts[-1],
-        	"title": response.xpath('//div[@id="paper-header"]/h1/text()')[0].extract(),
+        	"title": response.xpath('//div[@id="paper-header"]/h1/text()').extract_first(),
         	"authors": response.xpath('/html/body/div/div/div[1]/div[2]/div/div[1]/div/div/div[1]/div/ul/li[1]/span/span/a/span/span/text()').extract(),
-        	"date": response.xpath('//span[@data-selenium-selector="paper-year"]/span/span/text()')[0].extract(),
-        	"abstract": response.xpath('//div[@class="fresh-paper-detail-page__abstract"]/div/text()')[0].extract(),
-        	"references": refs[:5]
+        	"date": response.xpath('//span[@data-selenium-selector="paper-year"]/span/span/text()').extract_first(),
+        	"abstract": response.xpath('//div[@class="fresh-paper-detail-page__abstract"]/div/text()').extract_first(),
+        	"references": ids[:10]
         }
         for url in refs[:5]:
             if url in self.urls:
                 continue
             else:
                 self.urls.append(url)
-
-        yield scrapy.Request(url=self.urls[self.counter], callback=self.parse)
-
-        # limit = 2000
-        # count = 0
-        # infinit_loop = 5000
-        # check_finit = 0
-        # while url in refs and count<limit :
-        #     if url in urls:
-        #         continue
-        #     else:
-        #         yield scrapy.Request(url=url, callback=self.parse)
-        #         urls.append(url)
-        #         count += 1
-
-        # for url in refs[:5]:
-        #     if url in urls:
-        #         continue
-        #     else:
-        #         yield scrapy.Request(url=url, callback=self.parse)
-        #         count += 1
-        #         if count > limit:
-        #             break
-
+                yield scrapy.Request(url=url, callback=self.parse)
